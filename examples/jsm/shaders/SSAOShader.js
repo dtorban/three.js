@@ -235,8 +235,8 @@ var SSAODepthShader = {
 		"}",
 
 		"void main() {",
-
-		"	float depth = getLinearDepth( vUv );",
+		// "	float depth = getLinearDepth( vUv );", // Assume that depth is already linearly encoded
+		"	float depth = texture2D(tDepth, vUv).x;",
 		"	gl_FragColor = vec4( vec3( 1.0 - depth ), 1.0 );",
 
 		"}"

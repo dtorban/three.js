@@ -19,11 +19,22 @@ import {
 	RGBAFormat,
 	RepeatWrapping,
 	ShaderMaterial,
+	TextureLoader,
 	UniformsUtils,
 	UnsignedShortType,
 	Vector3,
 	WebGLRenderTarget,
-	ZeroFactor
+	ZeroFactor,
+	UnsignedByteType,
+	Texture,
+	sRGBEncoding,
+	GammaEncoding,
+	RGBEEncoding,
+	LogLuvEncoding,
+	RGBM7Encoding,
+	RGBM16Encoding,
+	RGBDEncoding,
+	BasicDepthPacking,
 } from "../../../build/three.module.js";
 import { Pass } from "../postprocessing/Pass.js";
 import { SimplexNoise } from "../math/SimplexNoise.js";
@@ -53,6 +64,8 @@ var SSAOPass = function ( scene, camera, width, height ) {
 	this.minDistance = 0.005;
 	this.maxDistance = 0.1;
 
+	this.showReal = false;
+
 	//
 
 	this.generateSampleKernel();
@@ -64,7 +77,7 @@ var SSAOPass = function ( scene, camera, width, height ) {
 	depthTexture.type = UnsignedShortType;
 	depthTexture.minFilter = NearestFilter;
 	depthTexture.maxFilter = NearestFilter;
-
+	
 	this.beautyRenderTarget = new WebGLRenderTarget( this.width, this.height, {
 		minFilter: LinearFilter,
 		magFilter: LinearFilter,
@@ -106,6 +119,14 @@ var SSAOPass = function ( scene, camera, width, height ) {
 		fragmentShader: SSAOShader.fragmentShader,
 		blending: NoBlending
 	} );
+
+	this.normalTex = new TextureLoader().load('textures/webgl_postprocessing_ssao_normal.png');
+	this.normalTex.minFilter = NearestFilter;
+	this.normalTex.magFilter = NearestFilter;
+	this.diffuseTex = new TextureLoader().load('textures/webgl_postprocessing_ssao_diffuse.png');
+	this.depthTex = new TextureLoader().load('textures/webgl_postprocessing_ssao_depth2.png', (tex) => {
+		console.log(tex);
+	});
 
 	this.ssaoMaterial.uniforms[ 'tDiffuse' ].value = this.beautyRenderTarget.texture;
 	this.ssaoMaterial.uniforms[ 'tNormal' ].value = this.normalRenderTarget.texture;
@@ -207,13 +228,17 @@ SSAOPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 		// render normals
 
 		this.renderOverride( renderer, this.normalMaterial, this.normalRenderTarget, 0x7777ff, 1.0 );
-
 		// render SSAO
 
 		this.ssaoMaterial.uniforms[ 'kernelRadius' ].value = this.kernelRadius;
 		this.ssaoMaterial.uniforms[ 'minDistance' ].value = this.minDistance;
 		this.ssaoMaterial.uniforms[ 'maxDistance' ].value = this.maxDistance;
+
+		this.ssaoMaterial.uniforms[ 'tDepth' ].value = this.depthTex;
+		this.ssaoMaterial.uniforms[ 'tNormal' ].value = this.normalTex;
+		this.ssaoMaterial.uniforms[ 'tDiffuse' ].value = this.diffuseTex;
 		this.renderPass( renderer, this.ssaoMaterial, this.ssaoRenderTarget );
+
 
 		// render blur
 
@@ -221,6 +246,7 @@ SSAOPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 
 		// output result to screen
 
+		// this.output = SSAOPass.OUTPUT.Depth;
 		switch ( this.output ) {
 
 			case SSAOPass.OUTPUT.SSAO:
@@ -241,7 +267,8 @@ SSAOPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 
 			case SSAOPass.OUTPUT.Beauty:
 
-				this.copyMaterial.uniforms[ 'tDiffuse' ].value = this.beautyRenderTarget.texture;
+				// this.copyMaterial.uniforms[ 'tDiffuse' ].value = this.beautyRenderTarget.texture;
+				this.copyMaterial.uniforms[ 'tDiffuse' ].value = this.diffuseTex;
 				this.copyMaterial.blending = NoBlending;
 				this.renderPass( renderer, this.copyMaterial, this.renderToScreen ? null : writeBuffer );
 
@@ -249,13 +276,15 @@ SSAOPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 
 			case SSAOPass.OUTPUT.Depth:
 
+				this.depthRenderMaterial.uniforms[ 'tDepth' ].value = this.depthTex;
 				this.renderPass( renderer, this.depthRenderMaterial, this.renderToScreen ? null : writeBuffer );
 
 				break;
 
 			case SSAOPass.OUTPUT.Normal:
 
-				this.copyMaterial.uniforms[ 'tDiffuse' ].value = this.normalRenderTarget.texture;
+				// this.copyMaterial.uniforms[ 'tDiffuse' ].value = this.normalRenderTarget.texture;
+				this.copyMaterial.uniforms[ 'tDiffuse' ].value = this.normalTex;
 				this.copyMaterial.blending = NoBlending;
 				this.renderPass( renderer, this.copyMaterial, this.renderToScreen ? null : writeBuffer );
 
@@ -263,7 +292,11 @@ SSAOPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 
 			case SSAOPass.OUTPUT.Default:
 
-				this.copyMaterial.uniforms[ 'tDiffuse' ].value = this.beautyRenderTarget.texture;
+				if (this.showReal) {
+					this.copyMaterial.uniforms[ 'tDiffuse' ].value = this.beautyRenderTarget.texture;
+				} else {
+					this.copyMaterial.uniforms[ 'tDiffuse' ].value = this.diffuseTex;
+				}
 				this.copyMaterial.blending = NoBlending;
 				this.renderPass( renderer, this.copyMaterial, this.renderToScreen ? null : writeBuffer );
 
@@ -424,11 +457,11 @@ SSAOPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 } );
 
 SSAOPass.OUTPUT = {
-	'Default': 0,
+	'Depth': 0,
 	'SSAO': 1,
 	'Blur': 2,
 	'Beauty': 3,
-	'Depth': 4,
+	'Default': 4,
 	'Normal': 5
 };
 
