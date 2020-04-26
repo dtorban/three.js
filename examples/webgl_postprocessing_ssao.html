@@ -121,7 +121,7 @@
 
 				composer = new EffectComposer( renderer );
 
-				var ssaoPass = new SSAOPass( scene, camera, width, height );
+				var ssaoPass = new SSAOPass( scene, camera, width, height, renderer );
 				ssaoPass.kernelRadius = 16;
 				composer.addPass( ssaoPass );
 
