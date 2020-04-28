@@ -163,20 +163,44 @@ var SSAOPass = function ( scene, camera, width, height, renderer ) {
 		blending: NoBlending
 	} );
 
-	var texture = new Texture();
-	var properties = renderer.properties.get( texture );
-	properties.__webglTexture = loadTexture(renderer.context);
+	var gl = renderer.getContext();
+	var diffuse = new Texture();
+	var properties = renderer.properties.get( diffuse );
+	var webglTex = loadTexture(renderer.getContext());
+  	gl.bindTexture(gl.TEXTURE_2D, webglTex);
+  	gl.texImage2D(gl.TEXTURE_2D, 13, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+  	gl.bindTexture(gl.TEXTURE_2D, webglTex);
+  	properties.__webglTexture = webglTex;
 	properties.__webglInit = true;
 
+	var normal = new Texture();
+	properties = renderer.properties.get( normal );
+	webglTex = loadTexture(renderer.getContext());
+  	gl.bindTexture(gl.TEXTURE_2D, webglTex);
+  	gl.texImage2D(gl.TEXTURE_2D, 14, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+  	gl.bindTexture(gl.TEXTURE_2D, webglTex);
+  	properties.__webglTexture = webglTex;
+	properties.__webglInit = true;
+
+	var depth = new Texture();
+	properties = renderer.properties.get( depth );
+	webglTex = loadTexture(renderer.getContext());
+  	gl.bindTexture(gl.TEXTURE_2D, webglTex);
+  	gl.texImage2D(gl.TEXTURE_2D, 15, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+  	gl.bindTexture(gl.TEXTURE_2D, webglTex);
+  	properties.__webglTexture = webglTex;
+	properties.__webglInit = true;
+
+
 	// this.normalTex = texture;
-	this.normalTex = new TextureLoader().load('textures/webgl_postprocessing_ssao_normal.png');
+	this.normalTex = normal;//new TextureLoader().load('textures/webgl_postprocessing_ssao_normal.png');
 	this.normalTex.minFilter = NearestFilter;
 	this.normalTex.magFilter = NearestFilter;
 	// this.diffuseTex = new TextureLoader().load('textures/webgl_postprocessing_ssao_diffuse.png');
-	this.diffuseTex = texture;
-	this.depthTex = new TextureLoader().load('textures/webgl_postprocessing_ssao_depth2.png', (tex) => {
-		console.log(tex);
-	});
+	this.diffuseTex = diffuse;
+	this.depthTex = depth;//new TextureLoader().load('textures/webgl_postprocessing_ssao_depth2.png', (tex) => {
+	//	console.log(tex);
+	//});
 
 	this.ssaoMaterial.uniforms[ 'tDiffuse' ].value = this.beautyRenderTarget.texture;
 	this.ssaoMaterial.uniforms[ 'tNormal' ].value = this.normalRenderTarget.texture;
@@ -270,6 +294,7 @@ SSAOPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 	render: function ( renderer, writeBuffer /*, readBuffer, deltaTime, maskActive */ ) {
 
 		// render beauty and depth
+	console.log("render2");
 
 		renderer.setRenderTarget( this.beautyRenderTarget );
 		renderer.clear();

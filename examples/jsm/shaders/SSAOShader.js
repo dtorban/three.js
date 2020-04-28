@@ -242,7 +242,8 @@ var SSAODepthShader = {
 		"	if (showReal)",
 		"		depth = getLinearDepth( vUv );", // Assume that depth is already linearly encoded
 		"	else",
-		"		depth = texture2D(tDepth, vUv).x;",
+		"		depth = getLinearDepth( vUv );", // Assume that depth is already linearly encoded
+		//"		depth = texture2D(tDepth, vUv).x;",
 		"	gl_FragColor = vec4( vec3( 1.0 - depth ), 1.0 );",
 
 		"}"
