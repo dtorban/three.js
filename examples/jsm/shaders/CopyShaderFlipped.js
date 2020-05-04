@@ -1,16 +1,9 @@
-/**
- * @author alteredq / http://alteredqualia.com/
- *
- * Full-screen textured quad shader
- */
-
-
-
-var CopyShader = {
+var CopyShaderFlipped = {
 
 	uniforms: {
 
 		"tDiffuse": { value: null },
+		"tIntensity": { value: null },
 		"opacity": { value: 1.0 }
 
 	},
@@ -33,13 +26,14 @@ var CopyShader = {
 		"uniform float opacity;",
 
 		"uniform sampler2D tDiffuse;",
+		"uniform sampler2D tIntensity;",
 
 		"varying vec2 vUv;",
 
 		"void main() {",
-
-		"	vec4 texel = texture2D( tDiffuse, vUv );",
-		"	gl_FragColor = opacity * texel;",
+		"	vec4 texel = texture2D( tDiffuse, vec2(vUv.x, 1.0-vUv.y) );",
+		"	vec4 intensity = texture2D( tIntensity, vUv );",
+		"	gl_FragColor = opacity * texel * intensity.x;",
 
 		"}"
 
@@ -49,5 +43,4 @@ var CopyShader = {
 
 
 
-
-export { CopyShader };
+export { CopyShaderFlipped };

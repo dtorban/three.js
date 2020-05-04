@@ -226,8 +226,11 @@ var SSAODepthShader = {
 		"	#if PERSPECTIVE_CAMERA == 1",
 
 		"		float fragCoordZ = texture2D( tDepth, screenPosition ).x;",
+		//"		float viewZ = perspectiveDepthToViewZ( fragCoordZ, 0.001, 100.0 );",
 		"		float viewZ = perspectiveDepthToViewZ( fragCoordZ, cameraNear, cameraFar );",
 		"		return viewZToOrthographicDepth( viewZ, cameraNear, cameraFar );",
+		//"		return (2.0 * 0.001) / (500.0 + 0.001 - fragCoordZ * (500.0 - 0.001)); ",
+		//"		return (2.0 * zNear) / (zFar + zNear - depth * (zFar - zNear)); "
 
 		"	#else",
 
@@ -245,6 +248,7 @@ var SSAODepthShader = {
 		"		depth = getLinearDepth( vUv );", // Assume that depth is already linearly encoded
 		//"		depth = texture2D(tDepth, vUv).x;",
 		"	gl_FragColor = vec4( vec3( 1.0 - depth ), 1.0 );",
+		//"	gl_FragColor = vec4(1.0,0,0, 1.0 );",
 
 		"}"
 
@@ -299,6 +303,8 @@ var SSAOBlurShader = {
 		"	}",
 
 		"	gl_FragColor = vec4( vec3( result / ( 5.0 * 5.0 ) ), 1.0 );",
+
+		//"	gl_FragColor = vec4(1.0,0,0, 1.0 );",
 
 		"}"
 

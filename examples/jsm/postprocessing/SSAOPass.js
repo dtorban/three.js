@@ -32,8 +32,8 @@ import { SimplexNoise } from "../math/SimplexNoise.js";
 import { SSAOShader } from "../shaders/SSAOShader.js";
 import { SSAOBlurShader } from "../shaders/SSAOShader.js";
 import { SSAODepthShader } from "../shaders/SSAOShader.js";
-import { CopyShader } from "../shaders/CopyShader.js";
-
+import { CopyShader} from "../shaders/CopyShader.js";
+import { CopyShaderFlipped } from "../shaders/CopyShaderFlipped.js";
 // Source:
 // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Using_textures_in_WebGL
 function loadTexture(gl) {
@@ -168,7 +168,7 @@ var SSAOPass = function ( scene, camera, width, height, renderer ) {
 	var properties = renderer.properties.get( diffuse );
 	var webglTex = loadTexture(renderer.getContext());
   	gl.bindTexture(gl.TEXTURE_2D, webglTex);
-  	gl.texImage2D(gl.TEXTURE_2D, 13, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+  	gl.texImage2D(gl.TEXTURE_2D, 9, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
   	gl.bindTexture(gl.TEXTURE_2D, webglTex);
   	properties.__webglTexture = webglTex;
 	properties.__webglInit = true;
@@ -177,7 +177,7 @@ var SSAOPass = function ( scene, camera, width, height, renderer ) {
 	properties = renderer.properties.get( normal );
 	webglTex = loadTexture(renderer.getContext());
   	gl.bindTexture(gl.TEXTURE_2D, webglTex);
-  	gl.texImage2D(gl.TEXTURE_2D, 14, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+  	gl.texImage2D(gl.TEXTURE_2D, 6, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
   	gl.bindTexture(gl.TEXTURE_2D, webglTex);
   	properties.__webglTexture = webglTex;
 	properties.__webglInit = true;
@@ -186,7 +186,16 @@ var SSAOPass = function ( scene, camera, width, height, renderer ) {
 	properties = renderer.properties.get( depth );
 	webglTex = loadTexture(renderer.getContext());
   	gl.bindTexture(gl.TEXTURE_2D, webglTex);
-  	gl.texImage2D(gl.TEXTURE_2D, 15, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+  	gl.texImage2D(gl.TEXTURE_2D, 7, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+  	gl.bindTexture(gl.TEXTURE_2D, webglTex);
+  	properties.__webglTexture = webglTex;
+	properties.__webglInit = true;
+
+	var intensity = new Texture();
+	properties = renderer.properties.get( intensity );
+	webglTex = loadTexture(renderer.getContext());
+  	gl.bindTexture(gl.TEXTURE_2D, webglTex);
+  	gl.texImage2D(gl.TEXTURE_2D, 5, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
   	gl.bindTexture(gl.TEXTURE_2D, webglTex);
   	properties.__webglTexture = webglTex;
 	properties.__webglInit = true;
@@ -198,6 +207,7 @@ var SSAOPass = function ( scene, camera, width, height, renderer ) {
 	this.normalTex.magFilter = NearestFilter;
 	// this.diffuseTex = new TextureLoader().load('textures/webgl_postprocessing_ssao_diffuse.png');
 	this.diffuseTex = diffuse;
+	this.indensityTex = intensity;
 	this.depthTex = depth;//new TextureLoader().load('textures/webgl_postprocessing_ssao_depth2.png', (tex) => {
 	//	console.log(tex);
 	//});
@@ -259,6 +269,23 @@ var SSAOPass = function ( scene, camera, width, height, renderer ) {
 		blendEquationAlpha: AddEquation
 	} );
 
+	this.copyMaterialFlipped = new ShaderMaterial( {
+		uniforms: UniformsUtils.clone( CopyShaderFlipped.uniforms ),
+		vertexShader: CopyShaderFlipped.vertexShader,
+		fragmentShader: CopyShaderFlipped.fragmentShader,
+		transparent: true,
+		depthTest: false,
+		depthWrite: false,
+		blendSrc: DstColorFactor,
+		blendDst: ZeroFactor,
+		blendEquation: AddEquation,
+		blendSrcAlpha: DstAlphaFactor,
+		blendDstAlpha: ZeroFactor,
+		blendEquationAlpha: AddEquation
+	} );
+
+	
+
 	this.fsQuad = new Pass.FullScreenQuad( null );
 
 	this.originalClearColor = new Color();
@@ -283,6 +310,7 @@ SSAOPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 		this.normalMaterial.dispose();
 		this.blurMaterial.dispose();
 		this.copyMaterial.dispose();
+		this.copyMaterialFlipped.dispose();
 		this.depthRenderMaterial.dispose();
 
 		// dipsose full screen quad
@@ -349,12 +377,12 @@ SSAOPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 			case SSAOPass.OUTPUT.Beauty:
 
 				if (this.showReal) {
-					// this.copyMaterial.uniforms[ 'tDiffuse' ].value = this.beautyRenderTarget.texture;
+					 this.copyMaterial.uniforms[ 'tDiffuse' ].value = this.beautyRenderTarget.texture;
 				} else {
-					this.copyMaterial.uniforms[ 'tDiffuse' ].value = this.diffuseTex;
+					this.copyMaterialFlipped.uniforms[ 'tDiffuse' ].value = this.diffuseTex;
 				}
-				this.copyMaterial.blending = NoBlending;
-				this.renderPass( renderer, this.copyMaterial, this.renderToScreen ? null : writeBuffer );
+				this.copyMaterialFlipped.blending = NoBlending;
+				this.renderPass( renderer, this.copyMaterialFlipped, this.renderToScreen ? null : writeBuffer );
 
 				break;
 
@@ -362,6 +390,9 @@ SSAOPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 
 				if (!this.showReal) {
 					this.depthRenderMaterial.uniforms[ 'tDepth' ].value = this.depthTex;
+				}
+				else {
+					this.depthRenderMaterial.uniforms[ 'tDepth' ].value = this.beautyRenderTarget.depthTexture;
 				}
 				this.depthRenderMaterial.uniforms[ 'showReal' ].value = this.showReal;
 				this.renderPass( renderer, this.depthRenderMaterial, this.renderToScreen ? null : writeBuffer );
@@ -385,10 +416,11 @@ SSAOPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 				if (this.showReal) {
 					this.copyMaterial.uniforms[ 'tDiffuse' ].value = this.beautyRenderTarget.texture;
 				} else {
-					this.copyMaterial.uniforms[ 'tDiffuse' ].value = this.diffuseTex;
+					this.copyMaterialFlipped.uniforms[ 'tDiffuse' ].value = this.diffuseTex;
+					this.copyMaterialFlipped.uniforms[ 'tIntensity' ].value = this.indensityTex;
 				}
-				this.copyMaterial.blending = NoBlending;
-				this.renderPass( renderer, this.copyMaterial, this.renderToScreen ? null : writeBuffer );
+				this.copyMaterialFlipped.blending = NoBlending;
+				this.renderPass( renderer, this.copyMaterialFlipped, this.renderToScreen ? null : writeBuffer );
 
 				this.copyMaterial.uniforms[ 'tDiffuse' ].value = this.blurRenderTarget.texture;
 				this.copyMaterial.blending = CustomBlending;
